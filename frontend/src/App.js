@@ -2,8 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import io from 'socket.io-client';
 import axios from 'axios';
 
-// Use the machine's IP automatically for backend, or allow override via env
-const API_URL = process.env.REACT_APP_API_URL || `http://${window.location.hostname}:5001`;
+// Use same-origin in production (served by backend), or allow override via env
+const API_URL = process.env.REACT_APP_API_URL || window.location.origin;
 
 function App() {
   const [socket, setSocket] = useState(null);

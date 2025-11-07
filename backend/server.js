@@ -3,6 +3,7 @@ const http = require('http');
 const socketIo = require('socket.io');
 const cors = require('cors');
 const { v4: uuidv4 } = require('uuid');
+const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
@@ -132,6 +133,14 @@ app.get('/api/conversations/:username1/:username2', (req, res) => {
   const conversationKey = [username1, username2].sort().join('-');
   const conversation = conversations.get(conversationKey) || [];
   res.json(conversation);
+});
+
+// Serve frontend build (single-domain deployment)
+const buildPath = path.join(__dirname, '../frontend/build');
+app.use(express.static(buildPath));
+
+app.get('*', (req, res) => {
+  res.sendFile(path.join(buildPath, 'index.html'));
 });
 
 const PORT = process.env.PORT || 5001;
