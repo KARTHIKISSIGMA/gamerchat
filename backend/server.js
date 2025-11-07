@@ -34,15 +34,7 @@ io.on('connection', (socket) => {
       return;
     }
 
-    // Check if this username is already online
-    const existingUsers = Array.from(users.values());
-    const usernameTakenOnline = existingUsers.some(user => user.username === userData.username);
-    
-    if (usernameTakenOnline) {
-      socket.emit('joinError', { message: 'Username is already taken' });
-      return;
-    }
-
+    // Allow same username across multiple devices/sessions
     const user = { id: socket.id, username: userData.username };
     users.set(socket.id, user);
     
