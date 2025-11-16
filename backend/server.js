@@ -12,8 +12,12 @@ const io = socketIo(server, {
     // Allow all origins during development so other devices on your LAN can connect
     origin: "*",
     methods: ["GET", "POST"],
-  }
+  },
+  pingInterval: 25000,
+  pingTimeout: 20000,
 });
+
+const HEARTBEAT_TIMEOUT_MS = 30000; // remove zombie users after 30s of no heartbeat
 
 app.use(cors());
 app.use(express.json());
@@ -35,7 +39,7 @@ io.on('connection', (socket) => {
     }
 
     // Allow same username across multiple devices/sessions
-    const user = { id: socket.id, username: userData.username };
+    const user = { id: socket.id, username: userData.username, lastSeen: Date.now() };
     users.set(socket.id, user);
     
     // Send user list to all clients
@@ -43,6 +47,26 @@ io.on('connection', (socket) => {
     
     socket.broadcast.emit('userJoined', user);
     socket.emit('joinSuccess', { message: 'Successfully joined chat' });
+  });
+
+  // Client-initiated logout to remove entry immediately on tab close
+  socket.on('logout', () => {
+    const user = users.get(socket.id);
+    if (user) {
+      users.delete(socket.id);
+      io.emit('users', Array.from(users.values()));
+      socket.broadcast.emit('userLeft', user);
+    }
+    try { socket.disconnect(true); } catch (e) {}
+  });
+
+  // Heartbeat from clients to keep connection fresh
+  socket.on('heartbeat', () => {
+    const user = users.get(socket.id);
+    if (user) {
+      user.lastSeen = Date.now();
+      users.set(socket.id, user);
+    }
   });
 
   socket.on('sendMessage', (messageData) => {
@@ -87,6 +111,26 @@ io.on('connection', (socket) => {
     console.log('User disconnected:', socket.id);
   });
 });
+
+// Periodic cleanup of stale users
+setInterval(() => {
+  let changed = false;
+  const now = Date.now();
+  for (const [socketId, user] of users.entries()) {
+    const staleSocket = io.sockets.sockets.get(socketId);
+    const isStale = !user.lastSeen || (now - user.lastSeen > HEARTBEAT_TIMEOUT_MS) || !staleSocket;
+    if (isStale) {
+      users.delete(socketId);
+      changed = true;
+      if (staleSocket) {
+        try { staleSocket.disconnect(true); } catch (e) {}
+      }
+    }
+  }
+  if (changed) {
+    io.emit('users', Array.from(users.values()));
+  }
+}, 10000);
 
 // REST API endpoints
 app.get('/api/users', (req, res) => {

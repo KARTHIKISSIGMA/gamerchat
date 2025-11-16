@@ -298,3 +298,46 @@ body {
   box-shadow: 0 8px 18px rgba(108, 92, 231, 0.25);
   font-weight: 600;
 }
+
+
+/* Home page styles */
+.home-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #0f172a 0%, #111827 50%, #0b1020 100%);
+  color: #fff;
+  position: relative;
+}
+
+.top-right-nav {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  gap: 10px;
+}
+
+.top-right-nav button {
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid #334155;
+  background: #1f2937;
+  color: #e5e7eb;
+  cursor: pointer;
+}
+
+.top-right-nav button:hover {
+  background: #374151;
+}
+
+.home-hero h1 {
+  font-size: 48px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.home-hero h1 strong {
+  font-weight: 900;
+}

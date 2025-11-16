@@ -17,6 +17,7 @@ function App() {
   const [messageInput, setMessageInput] = useState('');
   const messagesEndRef = useRef(null);
   const [authMode, setAuthMode] = useState('login');
+  const [screen, setScreen] = useState('home'); // 'home' | 'auth'
 
   useEffect(() => {
     if (isLoggedIn) {
@@ -26,6 +27,11 @@ function App() {
       newSocket.on('connect', () => {
         newSocket.emit('join', { username });
       });
+
+      // Send heartbeat periodically so server can clean up zombie sessions
+      const heartbeatInterval = setInterval(() => {
+        newSocket.emit('heartbeat');
+      }, 20000); // every 20s
 
       newSocket.on('joinSuccess', () => {
         // Login is already handled by isLoggedIn state
@@ -60,6 +66,7 @@ function App() {
       });
 
       return () => {
+        clearInterval(heartbeatInterval);
         newSocket.close();
       };
     }
@@ -84,9 +91,11 @@ function App() {
       if (authMode === 'signup') {
         await axios.post(`${API_URL}/api/signup`, { username, password });
         setIsLoggedIn(true);
+        setScreen('auth');
       } else {
         await axios.post(`${API_URL}/api/login`, { username, password });
         setIsLoggedIn(true);
+        setScreen('auth');
       }
     } catch (err) {
       const message = err.response?.data?.message || 'Something went wrong';
@@ -118,10 +127,28 @@ function App() {
     }
   };
 
+  if (screen === 'home' && !isLoggedIn) {
+    return (
+      <div className="home-container">
+        <div className="top-right-nav">
+          <button onClick={() => { setAuthMode('login'); setScreen('auth'); }}>Log In</button>
+          <button onClick={() => { setAuthMode('signup'); setScreen('auth'); }}>Sign Up</button>
+        </div>
+        <div className="home-hero">
+          <h1><strong>"Talk without limits"</strong></h1>
+        </div>
+      </div>
+    );
+  }
+
   if (!isLoggedIn) {
     return (
       <div className="login-container">
         <div className="auth-banner">Gamerchat.io</div>
+        <div className="top-right-nav">
+          <button className={authMode === 'login' ? 'active' : ''} onClick={() => setAuthMode('login')}>Log In</button>
+          <button className={authMode === 'signup' ? 'active' : ''} onClick={() => setAuthMode('signup')}>Sign Up</button>
+        </div>
         <form className="login-form" onSubmit={handleLogin}>
           <div className="auth-toggle" style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
             <button type="button" className={authMode === 'login' ? 'active' : ''} onClick={() => setAuthMode('login')}>Log In</button>
